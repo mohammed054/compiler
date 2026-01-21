@@ -111,8 +111,14 @@ export class RuneParser extends CstParser {
   private list = this.RULE('list', () => {
     this.CONSUME(LPAREN);
     const elements: CstNode[] = [];
+    let first = true;
     this.MANY(() => {
-      elements.push(this.SUBRULE(this.expression));
+      if (first) {
+        elements.push(this.SUBRULE(this.expression));
+        first = false;
+      } else {
+        elements.push(this.SUBRULE2(this.expression));
+      }
     });
     this.CONSUME(RPAREN);
     return {
@@ -124,8 +130,14 @@ export class RuneParser extends CstParser {
   private vector = this.RULE('vector', () => {
     this.CONSUME(LBRACKET);
     const elements: CstNode[] = [];
+    let first = true;
     this.MANY(() => {
-      elements.push(this.SUBRULE(this.expression));
+      if (first) {
+        elements.push(this.SUBRULE(this.expression));
+        first = false;
+      } else {
+        elements.push(this.SUBRULE2(this.expression));
+      }
     });
     this.CONSUME(RBRACKET);
     return {
@@ -139,7 +151,7 @@ export class RuneParser extends CstParser {
     const pairs: { key: CstNode; value: CstNode }[] = [];
     this.MANY(() => {
       const key = this.SUBRULE(this.expression);
-      const value = this.SUBRULE(this.expression);
+      const value = this.SUBRULE2(this.expression);
       pairs.push({ key, value });
     });
     this.CONSUME(RBRACE);
