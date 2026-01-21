@@ -18,11 +18,12 @@ import {
   UNQUOTE,
   allTokens,
   RuneLexer,
+  EOF_TOKEN,
 } from './tokens';
 
 export class RuneParser extends CstParser {
   constructor() {
-    super(allTokens);
+    super([...allTokens, EOF_TOKEN]);
     this.performSelfAnalysis();
   }
 
@@ -31,6 +32,7 @@ export class RuneParser extends CstParser {
     this.MANY(() => {
       body.push(this.SUBRULE(this.expression));
     });
+    this.CONSUME(EOF_TOKEN);
     return { type: 'Program', body };
   });
 
@@ -193,6 +195,12 @@ export function parseProgram(source: string): { cst: CstNode; errors: any[] } {
   const parser = new RuneParser();
   const lexResult = RuneLexer.tokenize(source);
   parser.input = lexResult.tokens;
-  const cst = parser.program();
-  return { cst, errors: parser.errors };
+  
+  try {
+    const cst = parser.program();
+    return { cst, errors: parser.errors };
+  } catch (e) {
+    const emptyCst: CstNode = { name: 'Program', children: {} };
+    return { cst: emptyCst, errors: [{ message: String(e) }] };
+  }
 }
