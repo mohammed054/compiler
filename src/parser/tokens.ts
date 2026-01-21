@@ -25,6 +25,13 @@ export const SYMBOL = createToken({
 export const ARROW = createToken({ name: 'ARROW', pattern: /->/ });
 export const DOT = createToken({ name: 'DOT', pattern: /\./ });
 export const EQUAL = createToken({ name: 'EQUAL', pattern: /=/ });
+export const PLUS = createToken({ name: 'PLUS', pattern: /\+/ });
+export const MINUS = createToken({ name: 'MINUS', pattern: /-/ });
+export const STAR = createToken({ name: 'STAR', pattern: /\*/ });
+export const SLASH = createToken({ name: 'SLASH', pattern: /\// });
+export const LT = createToken({ name: 'LT', pattern: /</ });
+export const GT = createToken({ name: 'GT', pattern: />/ });
+export const PERCENT = createToken({ name: 'PERCENT', pattern: /%/ });
 
 export const KEYWORD = createToken({
   name: 'KEYWORD',
@@ -69,6 +76,13 @@ export const allTokens = [
   ARROW,
   DOT,
   EQUAL,
+  PLUS,
+  MINUS,
+  STAR,
+  SLASH,
+  LT,
+  GT,
+  PERCENT,
   QUOTE,
   QUASIQUOTE,
   UNQUOTE,
