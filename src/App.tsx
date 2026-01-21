@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 
 const DEFAULT_CODE = `;; Rune Language - A functional language with hygienic macros
@@ -43,12 +43,91 @@ interface OutputLine {
   text: string;
 }
 
+function WelcomeModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0,0,0,0.8)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+    }}>
+      <div style={{
+        background: '#1a1a2e',
+        borderRadius: '16px',
+        padding: '32px',
+        maxWidth: '500px',
+        border: '1px solid #2a2a4a',
+      }}>
+        <h1 style={{
+          margin: '0 0 16px',
+          fontSize: '28px',
+          background: 'linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+        }}>
+          Welcome to Rune
+        </h1>
+        <p style={{ color: '#aaa', lineHeight: 1.6, marginBottom: '16px' }}>
+          Rune is a <strong>functional Lisp-like programming language</strong> that runs entirely in your browser.
+        </p>
+        <h3 style={{ color: '#00d4ff', margin: '24px 0 12px' }}>Features</h3>
+        <ul style={{ color: '#ccc', lineHeight: 1.8, paddingLeft: '20px' }}>
+          <li>First-class functions & closures</li>
+          <li>Hygienic macros with syntax-quote</li>
+          <li>Lists, vectors, and hash maps</li>
+          <li>Higher-order functions (map, filter, reduce)</li>
+          <li>Pattern matching (coming soon)</li>
+        </ul>
+        <h3 style={{ color: '#00d4ff', margin: '24px 0 12px' }}>Quick Start</h3>
+        <p style={{ color: '#aaa', marginBottom: '24px' }}>
+          Type or select an example, then click <strong>Run</strong> to see results below.
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%',
+            padding: '14px',
+            background: 'linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%)',
+            border: 'none',
+            borderRadius: '8px',
+            color: 'white',
+            fontSize: '16px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Start Coding →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [code, setCode] = useState(DEFAULT_CODE);
   const [output, setOutput] = useState<OutputLine[]>([]);
   const [replInput, setReplInput] = useState('');
   const [replHistory, setReplHistory] = useState<string[]>([]);
   const [replHistoryIndex, setReplHistoryIndex] = useState(-1);
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('rune-welcome-seen');
+    if (hasSeenWelcome) {
+      setShowWelcome(false);
+    }
+  }, []);
+
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
+    localStorage.setItem('rune-welcome-seen', 'true');
+  };
 
   const formatValue = (v: any): string => {
     if (v === null) return 'nil';
@@ -162,6 +241,8 @@ function App() {
 
   return (
     <div className="container">
+      {showWelcome && <WelcomeModal onClose={handleCloseWelcome} />}
+      
       <header className="header">
         <div className="logo">
           <h1>Rune</h1>

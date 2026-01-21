@@ -22,6 +22,10 @@ export const SYMBOL = createToken({
   pattern: /[a-zA-Z_][a-zA-Z0-9_-]*/,
 });
 
+export const ARROW = createToken({ name: 'ARROW', pattern: /->/ });
+export const DOT = createToken({ name: 'DOT', pattern: /\./ });
+export const EQUAL = createToken({ name: 'EQUAL', pattern: /=/ });
+
 export const KEYWORD = createToken({
   name: 'KEYWORD',
   pattern: /:[a-zA-Z_][a-zA-Z0-9_-]*/,
@@ -62,6 +66,9 @@ export const allTokens = [
   FALSE,
   NIL,
   SYMBOL,
+  ARROW,
+  DOT,
+  EQUAL,
   QUOTE,
   QUASIQUOTE,
   UNQUOTE,
