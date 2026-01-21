@@ -20,6 +20,8 @@ import {
   RuneLexer,
 } from './tokens';
 
+let parserInstance: RuneParser | null = null;
+
 export class RuneParser extends CstParser {
   constructor() {
     super(allTokens);
@@ -189,8 +191,15 @@ export class RuneParser extends CstParser {
   });
 }
 
+export function getParser(): RuneParser {
+  if (!parserInstance) {
+    parserInstance = new RuneParser();
+  }
+  return parserInstance;
+}
+
 export function parseProgram(source: string): { cst: CstNode; errors: any[] } {
-  const parser = new RuneParser();
+  const parser = getParser();
   const lexResult = RuneLexer.tokenize(source);
   parser.input = lexResult.tokens;
   

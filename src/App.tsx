@@ -73,16 +73,22 @@ function App() {
     const newOutput: OutputLine[] = [];
 
     try {
-      const { tokenize } = await import('./lexer/tokenizer');
-      const { RuneParser } = await import('./parser/parser');
+      const { RuneLexer } = await import('./parser/tokens');
+      const { getParser } = await import('./parser/parser');
       const { cstToAst } = await import('./parser/cstToAst');
       const { Evaluator } = await import('./eval/evaluator');
 
-      const tokens = tokenize(source);
+      const lexResult = RuneLexer.tokenize(source);
 
-      const ParserClass = RuneParser as any;
-      const parser = new ParserClass();
-      parser.input = tokens;
+      const parser = getParser();
+      parser.input = lexResult.tokens;
+
+      if (lexResult.errors.length > 0) {
+        newOutput.push({ type: 'error', text: lexResult.errors[0].message });
+        setOutput(newOutput);
+        return;
+      }
+
       const cst = parser.program();
 
       if (parser.errors && parser.errors.length > 0) {
