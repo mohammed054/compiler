@@ -2,36 +2,17 @@
 
 A functional Lisp-like programming language with hygienic macros, implemented in TypeScript with a full web IDE.
 
+## Try It Online
+
+**[https://mohammed054.github.io/compiler/](https://mohammed054.github.io/compiler/)**
+
 ## Features
 
-- **Functional core**: Lambda calculus with let bindings, pattern matching
+- **Functional core**: Lambda calculus with let bindings
 - **Hygienic macros**: Syntax-quote based macro system with gensym
-- **Pattern matching**: ML-style pattern matching with multiple clauses
 - **Data structures**: Lists, vectors, maps (hash maps)
 - **First-class functions**: Anonymous functions, closures
 - **Full web IDE**: Monaco Editor, REPL, live execution
-
-## Quick Start
-
-### Online
-
-Visit [rune-lang.dev](https://rune-lang.dev) to try Rune in your browser.
-
-### Local Development
-
-```bash
-npm install
-npm run dev
-```
-
-Open http://localhost:3000 to see the IDE.
-
-### Build for Production
-
-```bash
-npm run build
-npm run preview
-```
 
 ## Language Examples
 
@@ -44,18 +25,6 @@ npm run preview
     (* n (factorial (- n 1)))))
 
 (print (factorial 5))  ;; 120
-```
-
-### Pattern Matching
-
-```rune
-(defn fib n
-  (match n
-    0 -> 0
-    1 -> 1
-    n -> (+ (fib (- n 1)) (fib (- n 2)))))
-
-(print (fib 10))  ;; 55
 ```
 
 ### Macros
@@ -76,7 +45,6 @@ npm run preview
 
 (print (map double numbers))         ;; (2 4 6 8 10)
 (print (filter (fn [x] (> x 2)) numbers))  ;; (3 4 5)
-(print (reduce + numbers))           ;; 15
 ```
 
 ### Data Structures
@@ -90,19 +58,6 @@ npm run preview
 (print (cdr colors))    ;; (:green :blue)
 ```
 
-## Architecture
-
-```
-src/
-├── lexer/          # Tokenization
-├── parser/         # Parsing (Chevrotain)
-├── ast/            # AST type definitions
-├── eval/           # Interpreter/Evaluator
-├── macros/         # Macro expansion
-├── runtime/        # Built-in functions
-└── web/            # React frontend + Monaco
-```
-
 ## Tech Stack
 
 - **Language**: TypeScript
@@ -111,15 +66,6 @@ src/
 - **Frontend**: React + Vite
 - **Deploy**: GitHub Pages
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
 ## License
 
 MIT
-
-# Deployed via GitHub Actions
