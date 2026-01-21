@@ -152,34 +152,30 @@ function App() {
     const newOutput: OutputLine[] = [];
 
     try {
-      const { RuneLexer } = await import('./parser/tokens');
-      const { getParser } = await import('./parser/parser');
-      const { cstToAst } = await import('./parser/cstToAst');
+      const { tokenize } = await import('./lexer/tokenizer');
+      const { parseProgram } = await import('./parser/parser');
       const { Evaluator } = await import('./eval/evaluator');
 
-      const lexResult = RuneLexer.tokenize(source);
+      const tokens = tokenize(source);
 
-      const parser = getParser();
-      parser.input = lexResult.tokens;
-
-      if (lexResult.errors.length > 0) {
-        newOutput.push({ type: 'error', text: lexResult.errors[0].message });
+      if (tokens.some(t => t.type === 'ERROR')) {
+        const errorToken = tokens.find(t => t.type === 'ERROR');
+        newOutput.push({ type: 'error', text: `Lexing error at line ${errorToken?.line}: ${errorToken?.value}` });
         setOutput(newOutput);
         return;
       }
 
-      const cst = parser.program();
+      const { cst, errors } = parseProgram(source);
 
-      if (parser.errors && parser.errors.length > 0) {
-        newOutput.push({ type: 'error', text: parser.errors[0].message });
+      if (errors.length > 0) {
+        newOutput.push({ type: 'error', text: errors[0].message });
         setOutput(newOutput);
         return;
       }
 
-      const ast = cstToAst(cst);
       const evaluator = new Evaluator();
 
-      for (const expr of ast) {
+      for (const expr of cst.body) {
         try {
           const value = evaluator.eval(expr);
           if (value !== null && value !== undefined) {

@@ -1,213 +1,189 @@
-import { CstParser, CstNode } from 'chevrotain';
-import {
-  LPAREN,
-  RPAREN,
-  LBRACKET,
-  RBRACKET,
-  LBRACE,
-  RBRACE,
-  NUMBER,
-  STRING,
-  KEYWORD,
-  SYMBOL,
-  TRUE,
-  FALSE,
-  NIL,
-  QUOTE,
-  QUASIQUOTE,
-  UNQUOTE,
-  allTokens,
-  RuneLexer,
-} from './tokens';
+import { tokenize, Token } from '../lexer/tokenizer';
 
-let parserInstance: RuneParser | null = null;
+export type Expr =
+  | { type: 'Literal'; value: string | number | boolean | null }
+  | { type: 'Symbol'; value: string }
+  | { type: 'List'; elements: Expr[] }
+  | { type: 'Vector'; elements: Expr[] }
+  | { type: 'Map'; pairs: { key: Expr; value: Expr }[] }
+  | { type: 'Quote'; expr: Expr }
+  | { type: 'Quasiquote'; expr: Expr }
+  | { type: 'Unquote'; expr: Expr };
 
-export class RuneParser extends CstParser {
-  constructor() {
-    super(allTokens);
-    this.performSelfAnalysis();
+export interface ParseError {
+  message: string;
+  line: number;
+  column: number;
+}
+
+class Parser {
+  private tokens: Token[];
+  private pos: number = 0;
+
+  constructor(tokens: Token[]) {
+    this.tokens = tokens;
   }
 
-  public program = this.RULE('program', () => {
-    const body: CstNode[] = [];
-    this.MANY(() => {
-      body.push(this.SUBRULE(this.expression));
-    });
-    return { type: 'Program', body };
-  });
+  private peek(): Token {
+    return this.tokens[this.pos];
+  }
 
-  public expression = this.RULE('expression', () => {
-    return this.OR([
-      { ALT: () => this.SUBRULE(this.atom) },
-      { ALT: () => this.SUBRULE(this.list) },
-      { ALT: () => this.SUBRULE(this.vector) },
-      { ALT: () => this.SUBRULE(this.map) },
-      { ALT: () => this.SUBRULE(this.quote) },
-      { ALT: () => this.SUBRULE(this.quasiquote) },
-      { ALT: () => this.SUBRULE(this.unquote) },
-    ]);
-  });
+  private advance(): Token {
+    return this.tokens[this.pos++];
+  }
 
-  private atom = this.RULE('atom', () => {
-    return this.OR([
-      { ALT: () => this.SUBRULE(this.number) },
-      { ALT: () => this.SUBRULE(this.string) },
-      { ALT: () => this.SUBRULE(this.symbol) },
-      { ALT: () => this.SUBRULE(this.keyword) },
-      { ALT: () => this.SUBRULE(this.boolean) },
-      { ALT: () => this.SUBRULE(this.nil) },
-    ]);
-  });
+  private atEnd(): boolean {
+    return this.peek().type === 'EOF';
+  }
 
-  private number = this.RULE('number', () => {
-    const token = this.CONSUME(NUMBER);
-    return {
-      type: 'Literal',
-      value: parseFloat(token.image),
-    };
-  });
+  parseProgram(): { body: Expr[]; errors: ParseError[] } {
+    const body: Expr[] = [];
+    const errors: ParseError[] = [];
 
-  private string = this.RULE('string', () => {
-    const token = this.CONSUME(STRING);
-    return {
-      type: 'Literal',
-      value: token.image.slice(1, -1),
-    };
-  });
-
-  private symbol = this.RULE('symbol', () => {
-    const token = this.CONSUME(SYMBOL);
-    return {
-      type: 'Symbol',
-      value: token.image,
-    };
-  });
-
-  private keyword = this.RULE('keyword', () => {
-    const token = this.CONSUME(KEYWORD);
-    return {
-      type: 'Literal',
-      value: token.image,
-    };
-  });
-
-  private boolean = this.RULE('boolean', () => {
-    const token = this.OR([
-      { ALT: () => this.CONSUME(TRUE) },
-      { ALT: () => this.CONSUME(FALSE) },
-    ]);
-    return {
-      type: 'Literal',
-      value: token.image === 'true',
-    };
-  });
-
-  private nil = this.RULE('nil', () => {
-    const token = this.CONSUME(NIL);
-    return {
-      type: 'Literal',
-      value: null,
-    };
-  });
-
-  private list = this.RULE('list', () => {
-    this.CONSUME(LPAREN);
-    const elements: CstNode[] = [];
-    let first = true;
-    this.MANY(() => {
-      if (first) {
-        elements.push(this.SUBRULE(this.expression));
-        first = false;
-      } else {
-        elements.push(this.SUBRULE2(this.expression));
+    while (!this.atEnd()) {
+      try {
+        const expr = this.parseExpr();
+        if (expr) body.push(expr);
+      } catch (e: any) {
+        const token = this.peek();
+        errors.push({ message: e.message, line: token.line, column: token.column });
+        this.advance();
       }
-    });
-    this.CONSUME(RPAREN);
-    return {
-      type: 'List',
-      elements,
-    };
-  });
+    }
 
-  private vector = this.RULE('vector', () => {
-    this.CONSUME(LBRACKET);
-    const elements: CstNode[] = [];
-    let first = true;
-    this.MANY(() => {
-      if (first) {
-        elements.push(this.SUBRULE(this.expression));
-        first = false;
-      } else {
-        elements.push(this.SUBRULE2(this.expression));
-      }
-    });
-    this.CONSUME(RBRACKET);
-    return {
-      type: 'Vector',
-      elements,
-    };
-  });
+    return { body, errors };
+  }
 
-  private map = this.RULE('map', () => {
-    this.CONSUME(LBRACE);
-    const pairs: { key: CstNode; value: CstNode }[] = [];
-    this.MANY(() => {
-      const key = this.SUBRULE(this.expression);
-      const value = this.SUBRULE2(this.expression);
+  parseExpr(): Expr | null {
+    const token = this.peek();
+
+    if (token.type === 'EOF' || token.type === 'COMMENT') {
+      this.advance();
+      return null;
+    }
+
+    if (token.type === 'RPAREN' || token.type === 'RBRACKET' || token.type === 'RBRACE') {
+      throw new Error(`Unexpected ${token.type}`);
+    }
+
+    switch (token.type) {
+      case 'LPAREN':
+        return this.parseList();
+      case 'LBRACKET':
+        return this.parseVector();
+      case 'LBRACE':
+        return this.parseMap();
+      case 'QUOTE':
+        return this.parseQuote();
+      case 'QUASIQUOTE':
+        return this.parseQuasiquote();
+      case 'UNQUOTE':
+        return this.parseUnquote();
+      case 'NUMBER':
+        this.advance();
+        return { type: 'Literal', value: parseFloat(token.value) };
+      case 'STRING':
+        this.advance();
+        return { type: 'Literal', value: token.value };
+      case 'TRUE':
+        this.advance();
+        return { type: 'Literal', value: true };
+      case 'FALSE':
+        this.advance();
+        return { type: 'Literal', value: false };
+      case 'NIL':
+        this.advance();
+        return { type: 'Literal', value: null };
+      case 'KEYWORD':
+        this.advance();
+        return { type: 'Literal', value: token.value };
+      case 'SYMBOL':
+        this.advance();
+        return { type: 'Symbol', value: token.value };
+      default:
+        throw new Error(`Unexpected token: ${token.type}`);
+    }
+  }
+
+  private parseList(): Expr {
+    this.expect('LPAREN');
+    const elements: Expr[] = [];
+
+    while (this.peek().type !== 'RPAREN' && this.peek().type !== 'EOF') {
+      const expr = this.parseExpr();
+      if (expr) elements.push(expr);
+    }
+
+    this.expect('RPAREN');
+    return { type: 'List', elements };
+  }
+
+  private parseVector(): Expr {
+    this.expect('LBRACKET');
+    const elements: Expr[] = [];
+
+    while (this.peek().type !== 'RBRACKET' && this.peek().type !== 'EOF') {
+      const expr = this.parseExpr();
+      if (expr) elements.push(expr);
+    }
+
+    this.expect('RBRACKET');
+    return { type: 'Vector', elements };
+  }
+
+  private parseMap(): Expr {
+    this.expect('LBRACE');
+    const pairs: { key: Expr; value: Expr }[] = [];
+
+    while (this.peek().type !== 'RBRACE' && this.peek().type !== 'EOF') {
+      const key = this.parseExpr();
+      if (!key) throw new Error('Expected key in map');
+      const value = this.parseExpr();
+      if (!value) throw new Error('Expected value in map');
       pairs.push({ key, value });
-    });
-    this.CONSUME(RBRACE);
-    return {
-      type: 'Map',
-      pairs,
-    };
-  });
+    }
 
-  private quote = this.RULE('quote', () => {
-    this.CONSUME(QUOTE);
-    const expr = this.SUBRULE(this.expression);
-    return {
-      type: 'Quote',
-      expr,
-    };
-  });
+    this.expect('RBRACE');
+    return { type: 'Map', pairs };
+  }
 
-  private quasiquote = this.RULE('quasiquote', () => {
-    this.CONSUME(QUASIQUOTE);
-    const expr = this.SUBRULE(this.expression);
-    return {
-      type: 'Quasiquote',
-      expr,
-    };
-  });
+  private parseQuote(): Expr {
+    this.expect('QUOTE');
+    const expr = this.parseExpr();
+    return { type: 'Quote', expr: expr! };
+  }
 
-  private unquote = this.RULE('unquote', () => {
-    this.CONSUME(UNQUOTE);
-    const expr = this.SUBRULE(this.expression);
-    return {
-      type: 'Unquote',
-      expr,
-    };
-  });
+  private parseQuasiquote(): Expr {
+    this.expect('QUASIQUOTE');
+    const expr = this.parseExpr();
+    return { type: 'Quasiquote', expr: expr! };
+  }
+
+  private parseUnquote(): Expr {
+    this.expect('UNQUOTE');
+    const expr = this.parseExpr();
+    return { type: 'Unquote', expr: expr! };
+  }
+
+  private expect(type: string): Token {
+    const token = this.peek();
+    if (token.type !== type) {
+      throw new Error(`Expected ${type} but got ${token.type} at line ${token.line}`);
+    }
+    return this.advance();
+  }
 }
 
-export function getParser(): RuneParser {
-  if (!parserInstance) {
-    parserInstance = new RuneParser();
-  }
-  return parserInstance;
+export function parseProgram(source: string): { cst: { type: string; body: Expr[] }; errors: ParseError[] } {
+  const tokens = tokenize(source);
+  const parser = new Parser(tokens);
+  const { body, errors } = parser.parseProgram();
+  return { cst: { type: 'Program', body }, errors };
 }
 
-export function parseProgram(source: string): { cst: CstNode; errors: any[] } {
-  const parser = getParser();
-  const lexResult = RuneLexer.tokenize(source);
-  parser.input = lexResult.tokens;
-  
-  try {
-    const cst = parser.program();
-    return { cst, errors: parser.errors };
-  } catch (e) {
-    const emptyCst: CstNode = { name: 'Program', children: {} };
-    return { cst: emptyCst, errors: [{ message: String(e) }] };
-  }
+export function parseExpression(source: string): Expr {
+  const tokens = tokenize(source);
+  const parser = new Parser(tokens);
+  const expr = parser.parseExpr();
+  return expr!;
 }

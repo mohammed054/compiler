@@ -1,12 +1,33 @@
-import {
-  Expr,
-  Value,
-  ListValue,
-  VectorValue,
-  MapValue,
-  FnValue,
-  Env,
-} from '../ast/types';
+import { Expr } from '../parser/parser';
+
+interface ListValue {
+  type: 'list';
+  values: Value[];
+}
+
+interface VectorValue {
+  type: 'vector';
+  values: Value[];
+}
+
+interface MapValue {
+  type: 'map';
+  entries: Record<string, Value>;
+}
+
+interface FnValue {
+  type: 'fn';
+  params: string[];
+  body: Expr[];
+  env: Env;
+}
+
+interface Env {
+  parent: Env | null;
+  bindings: Record<string, Value>;
+}
+
+type Value = number | string | boolean | null | ListValue | VectorValue | MapValue | FnValue;
 
 function isListValue(v: Value): v is ListValue {
   return v !== null && typeof v === 'object' && (v as any).type === 'list';
@@ -402,16 +423,7 @@ export class Evaluator {
         const list = expr as any;
         return {
           type: 'list',
-          values: list.elements.map((e: Expr) => {
-            if (e.type === 'Splice') {
-              const values = this.eval((e as any).expr);
-              if (isListValue(values)) {
-                return values.values;
-              }
-              throw new Error('Splice requires a list');
-            }
-            return this.evalQuasiquote(e);
-          }).flat(),
+          values: list.elements.map((e: Expr) => this.evalQuasiquote(e)),
         };
       }
       default:
