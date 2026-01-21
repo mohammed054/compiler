@@ -12,16 +12,6 @@ const DEFAULT_CODE = `;; Rune Language - A functional language with hygienic mac
 ;; Test it
 (print "Factorial of 5:" (factorial 5))
 
-;; Pattern matching with match
-(defn describe-number n
-  (match n
-    0 -> "zero"
-    1 -> "one"
-    n -> (str "number " n)))
-
-(print (describe-number 0))
-(print (describe-number 5))
-
 ;; Higher-order functions
 (def double (fn [x] (* x 2)))
 (def numbers [1 2 3 4 5])
@@ -44,7 +34,7 @@ const EXAMPLES = [
   { name: 'Hello', code: '(print "Hello, Rune!")' },
   { name: 'Factorial', code: '(defn factorial n\n  (if (= n 0) 1 (* n (factorial (- n 1)))))\n(print (factorial 5))' },
   { name: 'Macros', code: '(defmacro when [cond body]\n  `(if ~cond ~body nil))\n(when true (print "works!"))' },
-  { name: 'Pattern Match', code: '(defn fib n\n  (match n\n    0 -> 0\n    1 -> 1\n    n -> (+ (fib (- n 1)) (fib (- n 2)))))\n(print (fib 10))' },
+  { name: 'Recursion', code: '(defn fib n\n  (if (< n 2) n\n    (+ (fib (- n 1)) (fib (- n 2)))))\n(print (fib 10))' },
   { name: 'Collections', code: '(def nums [1 2 3 4 5])\n(print "Sum:" (reduce + nums))\n(print "Filter even:" (filter (fn [x] (= (% x 2) 0)) nums))' },
 ];
 

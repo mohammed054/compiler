@@ -68,8 +68,6 @@ export const allTokens = [
   SPLICE,
 ];
 
-export const EOF_TOKEN = createToken({ name: 'EOF', pattern: /$/ });
-
 export const RuneLexer = new Lexer({
   modes: { main: allTokens },
   defaultMode: 'main',

@@ -18,12 +18,11 @@ import {
   UNQUOTE,
   allTokens,
   RuneLexer,
-  EOF_TOKEN,
 } from './tokens';
 
 export class RuneParser extends CstParser {
   constructor() {
-    super([...allTokens, EOF_TOKEN]);
+    super(allTokens);
     this.performSelfAnalysis();
   }
 
@@ -32,7 +31,6 @@ export class RuneParser extends CstParser {
     this.MANY(() => {
       body.push(this.SUBRULE(this.expression));
     });
-    this.CONSUME(EOF_TOKEN);
     return { type: 'Program', body };
   });
 
