@@ -121,3 +121,5 @@ src/
 ## License
 
 MIT
+
+# Deployed via GitHub Actions
