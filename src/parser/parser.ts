@@ -8,7 +8,8 @@ export type Expr =
   | { type: 'Map'; pairs: { key: Expr; value: Expr }[] }
   | { type: 'Quote'; expr: Expr }
   | { type: 'Quasiquote'; expr: Expr }
-  | { type: 'Unquote'; expr: Expr };
+  | { type: 'Unquote'; expr: Expr }
+  | { type: 'Splice'; expr: Expr };
 
 export interface ParseError {
   message: string;
@@ -79,6 +80,8 @@ class Parser {
         return this.parseQuasiquote();
       case 'UNQUOTE':
         return this.parseUnquote();
+      case 'SPLICE':
+        return this.parseSplice();
       case 'NUMBER':
         this.advance();
         return { type: 'Literal', value: parseFloat(token.value) };
@@ -163,6 +166,12 @@ class Parser {
     this.expect('UNQUOTE');
     const expr = this.parseExpr();
     return { type: 'Unquote', expr: expr! };
+  }
+
+  private parseSplice(): Expr {
+    this.expect('SPLICE');
+    const expr = this.parseExpr();
+    return { type: 'Splice', expr: expr! };
   }
 
   private expect(type: string): Token {

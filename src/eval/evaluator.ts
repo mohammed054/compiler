@@ -22,12 +22,17 @@ interface FnValue {
   env: Env;
 }
 
+interface SpliceValue {
+  type: 'splice';
+  values: Value[];
+}
+
 interface Env {
   parent: Env | null;
   bindings: Record<string, Value>;
 }
 
-type Value = number | string | boolean | null | ListValue | VectorValue | MapValue | FnValue;
+type Value = number | string | boolean | null | ListValue | VectorValue | MapValue | FnValue | SpliceValue;
 
 function isListValue(v: Value): v is ListValue {
   return v !== null && typeof v === 'object' && (v as any).type === 'list';
@@ -43,6 +48,10 @@ function isMapValue(v: Value): v is MapValue {
 
 function isFnValue(v: Value): v is FnValue {
   return v !== null && typeof v === 'object' && (v as any).type === 'fn';
+}
+
+function isSpliceValue(v: Value): v is SpliceValue {
+  return v !== null && typeof v === 'object' && (v as any).type === 'splice';
 }
 
 export class Evaluator {
@@ -212,6 +221,9 @@ export class Evaluator {
 
       case 'Unquote':
         throw new Error('Unquote outside quasiquote');
+
+      case 'Splice':
+        throw new Error('Splice outside quasiquote');
 
       default:
         throw new Error(`Unknown expression type: ${(expr as any).type}`);
@@ -419,12 +431,25 @@ export class Evaluator {
     switch (expr.type) {
       case 'Unquote':
         return this.eval((expr as any).expr);
+      case 'Splice': {
+        const value = this.eval((expr as any).expr);
+        if (isListValue(value)) {
+          return { type: 'splice', values: value.values };
+        }
+        return { type: 'splice', values: [value] };
+      }
       case 'List': {
         const list = expr as any;
-        return {
-          type: 'list',
-          values: list.elements.map((e: Expr) => this.evalQuasiquote(e)),
-        };
+        const values: Value[] = [];
+        for (const e of list.elements) {
+          const result = this.evalQuasiquote(e);
+          if (result && typeof result === 'object' && (result as any).type === 'splice') {
+            values.push(...(result as SpliceValue).values);
+          } else {
+            values.push(result);
+          }
+        }
+        return { type: 'list', values };
       }
       default:
         return this.evalQuote(expr);
