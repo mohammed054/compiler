@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
-import Editor, { loader } from '@monaco-editor/react';
+import Editor from '@monaco-editor/react';
 
 const DEFAULT_CODE = `;; Rune Language - A functional language with hygienic macros
 
@@ -47,8 +47,6 @@ interface ExecutionStats {
   expressions: number;
   timeMs: number;
 }
-
-loader.config({ monaco: window.monaco });
 
 function SkeletonLoader() {
   return (
