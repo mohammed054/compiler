@@ -182,7 +182,6 @@ function App() {
   const [replHistory, setReplHistory] = useState<string[]>([]);
   const [replHistoryIndex, setReplHistoryIndex] = useState(-1);
   const [showWelcome, setShowWelcome] = useState(true);
-  const [isEditorLoading, setIsEditorLoading] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [stats, setStats] = useState<ExecutionStats | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -372,7 +371,6 @@ function App() {
 
   const handleEditorDidMount = useCallback((editor: any, monaco: any) => {
     editorRef.current = editor;
-    setIsEditorLoading(false);
 
     monaco.editor.defineTheme('rune-dark', {
       base: 'vs-dark',
