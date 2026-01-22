@@ -109,14 +109,16 @@ export class Evaluator {
 
     env.bindings['map'] = this.primitiveFn((args) => {
       const fn = args[0];
-      const list = args[1] as ListValue;
-      return { type: 'list' as const, values: list.values.map(v => this.applyFn(fn, [v])) };
+      const listArg = args[1];
+      const values = isListValue(listArg) ? listArg.values : (isVectorValue(listArg) ? listArg.values : []);
+      return { type: 'list' as const, values: values.map(v => this.applyFn(fn, [v])) };
     });
 
     env.bindings['filter'] = this.primitiveFn((args) => {
       const fn = args[0];
-      const list = args[1] as ListValue;
-      return { type: 'list' as const, values: list.values.filter(v => {
+      const listArg = args[1];
+      const values = isListValue(listArg) ? listArg.values : (isVectorValue(listArg) ? listArg.values : []);
+      return { type: 'list' as const, values: values.filter(v => {
         const result = this.applyFn(fn, [v]);
         return result !== false && result !== null;
       })};
@@ -124,11 +126,12 @@ export class Evaluator {
 
     env.bindings['reduce'] = this.primitiveFn((args) => {
       const fn = args[0];
-      const list = args[1] as ListValue;
+      const listArg = args[1];
+      const values = isListValue(listArg) ? listArg.values : (isVectorValue(listArg) ? listArg.values : []);
       if (args.length === 2) {
-        return list.values.reduce((acc: Value, v: Value) => this.applyFn(fn, [acc, v]), 0);
+        return values.reduce((acc: Value, v: Value) => this.applyFn(fn, [acc, v]), 0);
       } else {
-        return list.values.reduce((acc: Value, v: Value) => this.applyFn(fn, [acc, v]), args[2]);
+        return values.reduce((acc: Value, v: Value) => this.applyFn(fn, [acc, v]), args[2]);
       }
     });
 
