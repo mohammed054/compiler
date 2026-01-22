@@ -133,8 +133,9 @@ export class Evaluator {
     });
 
     env.bindings['print'] = this.primitiveFn((args) => {
-      console.log(...args.map(v => this.formatValue(v)));
-      return null;
+      const output = args.map(v => this.formatValue(v)).join(' ');
+      console.log(output);
+      return output;
     });
 
     env.bindings['str'] = this.primitiveFn((args) => args.map(v => this.formatValue(v)).join(''));
