@@ -448,33 +448,30 @@ function App() {
         <div className="editor-pane">
           <div className="pane-header">Editor</div>
           <div className="editor-container">
-            {isEditorLoading ? (
-              <SkeletonLoader />
-            ) : (
-              <Editor
-                height="100%"
-                defaultLanguage="scheme"
-                theme="rune-dark"
-                value={code}
-                onChange={(value) => setCode(value || '')}
-                onMount={handleEditorDidMount}
-                options={{
-                  minimap: { enabled: !isMobile },
-                  fontSize: isMobile ? 12 : 14,
-                  lineNumbers: 'on',
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  tabSize: 2,
-                  wordWrap: 'on',
-                  fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
-                  fontLigatures: true,
-                  cursorBlinking: 'smooth',
-                  cursorSmoothCaretAnimation: 'on',
-                  smoothScrolling: true,
-                  padding: { top: 16, bottom: 16 },
-                }}
-              />
-            )}
+            <Editor
+              height="100%"
+              defaultLanguage="scheme"
+              theme="vs-dark"
+              value={code}
+              onChange={(value) => setCode(value || '')}
+              onMount={handleEditorDidMount}
+              loading={<SkeletonLoader />}
+              options={{
+                minimap: { enabled: !isMobile },
+                fontSize: isMobile ? 12 : 14,
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                tabSize: 2,
+                wordWrap: 'on',
+                fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+                fontLigatures: true,
+                cursorBlinking: 'smooth',
+                cursorSmoothCaretAnimation: 'on',
+                smoothScrolling: true,
+                padding: { top: 16, bottom: 16 },
+              }}
+            />
           </div>
           <div className="examples-panel">
             <div className="examples-title">Examples</div>
