@@ -331,7 +331,17 @@ export class Evaluator {
   private specialForm(name: string, args: Expr[]): Value {
     switch (name) {
       case 'fn': {
-        const params = ((args[0] as any)?.value || '').split(' ').filter(Boolean);
+        const paramsExpr = args[0];
+        let params: string[];
+        if (paramsExpr.type === 'Vector') {
+          params = paramsExpr.elements
+            .filter(e => e.type === 'Symbol')
+            .map(e => (e as any).value);
+        } else if (paramsExpr.type === 'Symbol') {
+          params = [(paramsExpr as any).value];
+        } else {
+          params = [];
+        }
         const body = args.slice(1);
         return { type: 'fn' as const, params, body, env: this.env };
       }
@@ -346,7 +356,17 @@ export class Evaluator {
       case 'defn': {
         const n = args[0] as any;
         const nameStr = n.value;
-        const params = ((args[1] as any)?.value || '').split(' ').filter(Boolean);
+        const paramsExpr = args[1];
+        let params: string[];
+        if (paramsExpr.type === 'Vector') {
+          params = paramsExpr.elements
+            .filter(e => e.type === 'Symbol')
+            .map(e => (e as any).value);
+        } else if (paramsExpr.type === 'Symbol') {
+          params = [paramsExpr.value];
+        } else {
+          params = [];
+        }
         const body = args.slice(2);
         const fn = { type: 'fn' as const, params, body, env: this.env };
         this.env.bindings[nameStr] = fn;
@@ -355,14 +375,30 @@ export class Evaluator {
 
       case 'defmacro': {
         const mname = (args[0] as any).value;
-        const params = ((args[1] as any)?.value || '').split(' ').filter(Boolean);
+        const paramsExpr = args[1];
+        let params: string[];
+        if (paramsExpr.type === 'Vector') {
+          params = paramsExpr.elements
+            .filter(e => e.type === 'Symbol')
+            .map(e => (e as any).value);
+        } else if (paramsExpr.type === 'Symbol') {
+          params = [paramsExpr.value];
+        } else {
+          params = [];
+        }
         const body = args.slice(2);
         this.macros.set(mname, { params, body });
         return null;
       }
 
       case 'let': {
-        const bindings = (args[0] as any).elements;
+        const bindingsExpr = args[0];
+        let bindings: Expr[];
+        if (bindingsExpr.type === 'Vector') {
+          bindings = bindingsExpr.elements;
+        } else {
+          bindings = (bindingsExpr as any).elements || [];
+        }
         const body = args.slice(1);
         const newEnv: Env = {
           parent: this.env,
