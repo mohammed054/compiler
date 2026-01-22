@@ -120,14 +120,14 @@ export function tokenize(source: string): Token[] {
       '^': 'SPLICE',
       '@': 'SPLICE',
       '.': 'DOT',
-      '=': 'EQUAL',
-      '+': 'PLUS',
-      '-': 'MINUS',
-      '*': 'STAR',
-      '/': 'SLASH',
-      '<': 'LT',
-      '>': 'GT',
-      '%': 'PERCENT',
+      '=': 'SYMBOL',
+      '+': 'SYMBOL',
+      '-': 'SYMBOL',
+      '*': 'SYMBOL',
+      '/': 'SYMBOL',
+      '<': 'SYMBOL',
+      '>': 'SYMBOL',
+      '%': 'SYMBOL',
     };
 
     if (singleCharTokens[char]) {
