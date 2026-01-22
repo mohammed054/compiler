@@ -20,6 +20,8 @@ interface FnValue {
   params: string[];
   body: Expr[];
   env: Env;
+  primitive?: boolean;
+  primitiveFn?: (args: Value[]) => Value;
 }
 
 interface SpliceValue {
@@ -105,6 +107,31 @@ export class Evaluator {
     env.bindings['true?'] = this.primitiveFn((args) => args[0] === true);
     env.bindings['false?'] = this.primitiveFn((args) => args[0] === false);
 
+    env.bindings['map'] = this.primitiveFn((args) => {
+      const fn = args[0];
+      const list = args[1] as ListValue;
+      return { type: 'list' as const, values: list.values.map(v => this.applyFn(fn, [v])) };
+    });
+
+    env.bindings['filter'] = this.primitiveFn((args) => {
+      const fn = args[0];
+      const list = args[1] as ListValue;
+      return { type: 'list' as const, values: list.values.filter(v => {
+        const result = this.applyFn(fn, [v]);
+        return result !== false && result !== null;
+      })};
+    });
+
+    env.bindings['reduce'] = this.primitiveFn((args) => {
+      const fn = args[0];
+      const list = args[1] as ListValue;
+      if (args.length === 2) {
+        return list.values.reduce((acc: Value, v: Value) => this.applyFn(fn, [acc, v]), 0);
+      } else {
+        return list.values.reduce((acc: Value, v: Value) => this.applyFn(fn, [acc, v]), args[2]);
+      }
+    });
+
     env.bindings['print'] = this.primitiveFn((args) => {
       console.log(...args.map(v => this.formatValue(v)));
       return null;
@@ -127,7 +154,26 @@ export class Evaluator {
   }
 
   private primitiveFn(fn: (args: Value[]) => Value): Value {
-    return { type: 'fn', params: [], body: [], env: this.env };
+    return { type: 'fn', params: [], body: [], env: this.env, primitive: true, primitiveFn: fn };
+  }
+
+  private applyFn(fn: Value, args: Value[]): Value {
+    if (isFnValue(fn)) {
+      const newEnv: Env = {
+        parent: fn.env,
+        bindings: {},
+      };
+      for (let i = 0; i < fn.params.length; i++) {
+        newEnv.bindings[fn.params[i]] = args[i];
+      }
+      const nestedEval = new Evaluator(newEnv);
+      let result: Value = null;
+      for (const expr of fn.body) {
+        result = nestedEval.eval(expr);
+      }
+      return result;
+    }
+    return fn;
   }
 
   private formatValue(v: Value): string {
@@ -177,18 +223,30 @@ export class Evaluator {
           return { type: 'list', values: [] };
         }
 
-        const first = this.eval(expr.elements[0]);
+        const firstExpr = expr.elements[0];
+        
+        // Check if first element is a special form symbol
+        if (firstExpr.type === 'Symbol') {
+          const symbolName = (firstExpr as any).value;
+          if (['def', 'defn', 'defmacro', 'fn', 'let', 'if', 'do'].includes(symbolName)) {
+            return this.specialForm(symbolName, expr.elements.slice(1));
+          }
+        }
+
+        // Check for keyword access like (:name person)
+        if (firstExpr.type === 'Literal' && typeof (firstExpr as any).value === 'string' && (firstExpr as any).value.startsWith(':')) {
+          const keyword = (firstExpr as any).value;
+          const mapExpr = this.eval(expr.elements[1]);
+          if (isMapValue(mapExpr)) {
+            return mapExpr.entries[keyword] || null;
+          }
+          throw new Error('Keyword access requires a map');
+        }
+
+        const first = this.eval(firstExpr);
 
         if (isFnValue(first)) {
           return this.apply(first, expr.elements.slice(1));
-        }
-
-        if (first === 'Symbol' && typeof first === 'string') {
-          return this.specialForm(first as string, expr.elements.slice(1));
-        }
-
-        if (typeof first === 'string') {
-          return this.specialForm(first, expr.elements.slice(1));
         }
 
         throw new Error(`Cannot call non-function`);
@@ -245,6 +303,9 @@ export class Evaluator {
     const evaluatedArgs = args.map(a => this.eval(a));
 
     if (fn.body.length === 0) {
+      if ((fn as any).primitive) {
+        return (fn as any).primitiveFn(evaluatedArgs);
+      }
       return { type: 'fn', params: fn.params, body: [], env: fn.env };
     }
 
